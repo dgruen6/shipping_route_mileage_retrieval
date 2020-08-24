@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetMileage xmlns="http://tempuri.org/">
+      <request>
+        <originCity>{0}</originCity>
+        <originState>{1}</originState>
+        <originPostal>{2}</originPostal>
+        <originCountry>{3}</originCountry>
+        <destinationCity>{4}</destinationCity>
+        <destinationState>{5}</destinationState>
+        <destinationPostal>{6}</destinationPostal>
+        <destinationCountry>{7}</destinationCountry>
+        <version>{8}</version>
+      </request>
+    </GetMileage>
+  </soap:Body>
+</soap:Envelope>

@@ -1,0 +1,12 @@
+SELECT
+UPPER(Origin_City)+'_'+UPPER(Origin_State)+'_'+Origin_Postal+'_'+UPPER(Destination_City)+'_'+UPPER(Destination_State)+'_'+Destination_Postal AS PCMiler_Key
+,dbo.PCMiler_Miles.Mileage
+,COUNT(*) AS row_count
+FROM [ReportDB].[dbo].[PCMiler_Miles]
+WHERE [Origin_Postal] <> '99999' AND [Destination_Postal] <> '99999'
+AND Origin_Postal <> 'UNKNO' AND Destination_Postal <> 'UNKNO'
+AND Origin_City <> 'NOT SUPPLIED' AND Destination_City <> 'NOT SUPPLIED'
+AND Origin_City <> 'UNKNOWN' AND Destination_City <> 'UNKNOWN'
+GROUP BY UPPER(Origin_City)+'_'+UPPER(Origin_State)+'_'+Origin_Postal+'_'+UPPER(Destination_City)+'_'+UPPER(Destination_State)+'_'+Destination_Postal
+,dbo.PCMiler_Miles.Mileage
+ORDER BY PCMiler_Key
