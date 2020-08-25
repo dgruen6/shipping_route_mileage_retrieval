@@ -3,6 +3,7 @@
 import logging
 from pathlib import Path
 import configparser
+import re
 
 from DatabaseConnector import DatabaseConnector
 from PCMilerApiConnector import PCMilerApiConnector
@@ -45,9 +46,11 @@ zip_codes_df = destination_database.fetch(sql_statement=zip_codes_query)
 destination_database.close()
 
 
-# Filter rows that have no mileage value yet and perform PCMiler API call for those rows
-#TODO: rows below need to be updated!
-api_call_input_df = mileages_df[mileages_df.mileage is None]
+# Filter rows that have mileage less than 1 and invalid key (using regex)
+filtered_mileages_df = mileages_df[mileages_df.Mileage < 1.0]
+filtered_mileages_df = filtered_mileages_df[filtered_mileages_df.PCMiler_Key.str.match(na=False, pat='^[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+_[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+$')]
+
+a = filtered_mileages_df.PCMiler_Key.str.match(na=False, pat='^[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+_[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+$')
 
 
 # Perform PCMiler API call on filtered rows
