@@ -1,3 +1,0 @@
-SELECT TOP 100 * FROM dbo.PCMiler_ZipcodeDB
-WHERE ZipCodeType = 'STANDARD'
-AND LocationType = 'PRIMARY'

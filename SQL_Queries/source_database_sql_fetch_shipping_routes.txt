@@ -1,0 +1,38 @@
+SELECT Distinct
+[Origin City]
+,[Origin State]
+,CASE WHEN [Origin State] in ('AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT', 'PQ') then
+    CASE WHEN LEFT([Origin Zip],1) IN ('A', 'B', 'C', 'E', 'G','H','J','K','L','M','N','P','R','S','T','V','X','Y') THEN [Origin Zip] END
+    ELSE LEFT([Origin Zip],5)
+    END AS [Origin Zip]
+,CASE WHEN [Origin State] in ('AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT', 'PQ') THEN
+    CASE WHEN LEFT([Origin Zip],1) IN ('A', 'B', 'C', 'E', 'G','H','J','K','L','M','N','P','R','S','T','V','X','Y') THEN 'CAN'
+         WHEN [Origin State] = 'NS' then 'FIN' END -- FINLAND
+    WHEN [Origin State] IN ('CH','EM','D.','TA') THEN 'MEX' -- MEXICO
+    WHEN [Origin State] = 'KP' THEN 'KOR' -- KOREA
+ELSE 'USA'
+END AS [Origin_Country]
+,[Dest City]
+,[Dest State]
+,CASE WHEN [Dest State] in ('AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT', 'PQ') then
+    CASE WHEN LEFT([Dest Zip],1) IN ('A', 'B', 'C', 'E', 'G','H','J','K','L','M','N','P','R','S','T','V','X','Y') THEN [DEST Zip] END
+    ELSE LEFT([Dest Zip], 5)
+    END AS [Dest Zip]
+,CASE WHEN [Dest State] in ('AB', 'BC', 'MB', 'NB', 'NL', 'NS', 'NT', 'NU', 'ON', 'PE', 'QC', 'SK', 'YT', 'PQ') THEN
+    CASE WHEN LEFT([Dest Zip],1) IN ('A', 'B', 'C', 'E', 'G','H','J','K','L','M','N','P','R','S','T','V','X','Y') THEN 'CAN'
+         WHEN [Dest State] = 'NS' then 'FIN' END -- FINLAND
+    WHEN [Dest State] IN ('CH','EM','D.','TA') THEN 'MEX' -- MEXICO
+    WHEN [Dest State] = 'KP' THEN 'KOR' -- KOREA
+ELSE 'USA'
+END AS [Destination_Country]
+FROM [dbo].[TMS.Vw_MTS_FactFinal_V3]
+where [Origin Zip] <>  '' AND [Origin Zip] IS NOT NULL AND [Dest Zip] IS NOT NULL
+AND [Origin City] IS NOT NULL
+AND ([Distance] = 0 or Distance is NULL)
+AND [Origin Zip] <> [Dest Zip]
+AND [Dest Zip] <> '99999' and [Origin Zip]  <> '99999'
+AND [Dest Zip] <> 'UNKNO' AND [Origin Zip] <> 'UNKNO'
+AND [Origin City] <> 'NOT SUPPLIED' AND [Origin City] <> 'UNKNOWN'
+AND [Dest City] <> 'NOT SUPPLIED' AND [Dest City] <> 'UNKNOWN'
+AND [Dest Zip] <> [Origin Zip] and [Dest Zip] <> '00000'
+AND [MatchedBy] NOT IN ('SLC Parcel')

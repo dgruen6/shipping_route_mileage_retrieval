@@ -1,0 +1,26 @@
+/****** Script for SelectTopNRows command from SSMS  ******/
+SELECT  [Origin_City]
+      ,[Origin_State]
+      ,[Origin_Postal]
+      ,[Origin_Country]
+      ,[Destination_City]
+      ,[Destination_State]
+      ,[Destination_Postal]
+      ,[Destination_Country]
+      ,[Mileage]
+	  ,COUNT(*) row_count
+  FROM [ReportDB].[dbo].[PCMiler_Miles]
+  WHERE [Origin_Postal] <> '99999' AND [Destination_Postal] <> '99999'
+AND Origin_Postal <> 'UNKNO' AND Destination_Postal <> 'UNKNO'
+AND Origin_City <> 'NOT SUPPLIED' AND Destination_City <> 'NOT SUPPLIED'
+AND Origin_City <> 'UNKNOWN' AND Destination_City <> 'UNKNOWN'
+GROUP BY  [Origin_City]
+      ,[Origin_State]
+      ,[Origin_Postal]
+      ,[Origin_Country]
+      ,[Destination_City]
+      ,[Destination_State]
+      ,[Destination_Postal]
+      ,[Destination_Country]
+      ,[Mileage]
+	ORDER BY row_count desc

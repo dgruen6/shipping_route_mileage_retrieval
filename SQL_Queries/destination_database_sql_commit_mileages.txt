@@ -1,0 +1,12 @@
+INSERT INTO [ReportDB].[dbo].[PCMiler_Miles] ([Origin_City]
+,[Origin_State]
+,[Origin_Postal]
+,[Origin_Country]
+,[Destination_City]
+,[Destination_State]
+,[Destination_Postal]
+,[Destination_Country]
+,[Mileage_Type]
+,[Mileage]
+,[Last_Refresh])
+VALUES (?,?,?,?,?,?,?,?,?,?,?)
