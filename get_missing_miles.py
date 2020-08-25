@@ -1,9 +1,8 @@
-# import win32com.client as win32
-
 import logging
 from pathlib import Path
 import configparser
-import re
+from typing import List, Optional
+import pandas as pd
 
 from DatabaseConnector import DatabaseConnector
 from PCMilerApiConnector import PCMilerApiConnector
@@ -11,12 +10,14 @@ from PCMilerApiConnector import PCMilerApiConnector
 logging.basicConfig()
 logging.getLogger().setLevel(logging.INFO)
 
-#
 # Get database credentials from config.ini
 config = configparser.ConfigParser()
 config.read('config.ini')
 
 
+######################################################################
+# EXTRACT
+######################################################################
 # SOURCE DATABASE QUERY (get origin and destination information)
 source_database = DatabaseConnector(server=config['source_database_credentials']['server'],
                                     database=config['source_database_credentials']['database'],
@@ -46,57 +47,107 @@ zip_codes_df = destination_database.fetch(sql_statement=zip_codes_query)
 destination_database.close()
 
 
-# Filter rows that have mileage less than 1 and invalid key (using regex)
-filtered_mileages_df = mileages_df[mileages_df.Mileage < 1.0]
-filtered_mileages_df = filtered_mileages_df[filtered_mileages_df.PCMiler_Key.str.match(na=False, pat='^[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+_[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+$')]
+######################################################################
+# TRANSFORM
+######################################################################
+class Address:
+    def __init__(self, city: str, state: str, zip_code: str, country: str = None):
+        self.city: str = city
+        self.state: str = state
+        self.zip: str = zip_code
+        self.country: str = country
 
-a = filtered_mileages_df.PCMiler_Key.str.match(na=False, pat='^[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+_[a-zA-Z\s]+_[a-zA-Z\s]+_[a-zA-Z0-9\s]+$')
+
+class Route:
+    def __init__(self, origin: Address, destination: Address):
+        self.origin: Address = origin
+        self.destination: Address = destination
+        self.mileage: float
+
+    def get_alternative_zip_code(self, for_: str, zip_code_df: pd.DataFrame) -> Optional[str]:
+        """
+        Get alternative zip code based on given zip code dataframe
+
+        :param for_: 'origin' or 'destination'
+        :param zip_code_df: Pandas dataframe which will be used to find an alternative ZIP code
+        :return: Alternative zip code if possible, otherwise None
+        """
+        pass
+
+    def get_key(self) -> str:
+        """
+        Returns route key used to identify a route in destination database
+
+        :return: Route key
+        """
+        key = f"{self.origin.city.upper()}_{self.origin.state.upper()}_{self.origin.zip.upper()}" \
+              f"_{self.destination.city.upper()}_{self.destination.state.upper()}_{self.destination.zip.upper()}"
+        return key
+
+    def get_pcmiler_input(self) -> List:
+        """
+        Get the input list for the PCMiler API call (city, state, zip, country) for origin and destination
+
+        :return: List [origin(city, state, zip, country), destination(city, state, zip, country)]
+        """
+        return [self.origin.city, self.origin.state, self.origin.zip, self.origin.country,
+                self.destination.city, self.destination.state, self.destination.zip, self.destination.country]
+
+    def find_mileage_in(self, df: pd.DataFrame) -> Optional[float]:
+        """
+        Find route in given dataframe (extracted from database)
+
+        :param df: Pandas dataframe
+        :return: FLoat mileage if route found in given dataframe, None otherwise
+        """
+        pass
+
+    def get_mileage_from_google(self) -> float:
+        pass
 
 
-# Perform PCMiler API call on filtered rows
 pcMiler = PCMilerApiConnector()
 
+# Get mileages for shipping_routes_df (source database)
+processed_shipping_routes = []
+for index, row in shipping_routes_df.iterrows():
+    # Create route object from Route class
+    route = Route(origin=Address(row['Origin City'], row['Origin State'], row['Origin Zip'], row['Origin_Country']),
+                  destination=Address(row['Dest City'], row['Dest State'], row['Dest Zip'], row['Destination_Country']))
 
-# Find invalid mileages (mileage < 1.0)
-invalid_destination_entries = []
-for item in destination_entries.items():
-    mileage, count = item[1].values()
-    if mileage < 1.0:
-        implausible_destination_entries.append(item)
+    # Check if route exists in mileages_df (destination database) and mileage > 1.0
+    route.mileage = route.find_mileage_in(df=mileages_df)
+    if route.mileage and route.mileage > 1.0:
+        continue
+
+    # If no mileage found, run PCMiler API call
+    if not route.mileage:
+        route.mileage = pcMiler.get_mileage(*route.get_pcmiler_input())
+
+    # If mileage < 1.0, try to alternate the ZIP codes
+    if route.mileage < 1.0:
+        new_org_zip = route.get_alternative_zip_code(for_='origin', zip_code_df=zip_codes_df)
+        new_dest_zip = route.get_alternative_zip_code(for_='destination', zip_code_df=zip_codes_df)
+
+        # Try API call with new origin ZIP first (if possible)
+
+        # If no improvement, try with the new destination ZIP (if possible)
+
+        # If still no improvement, try with both new origin and destination ZIPs (if possible)
+
+    # If alternating the ZIP code did not help, use GoogleMaps API to determine mileage
+    if route.mileage < 1.0:
+        route.mileage = route.get_mileage_from_google()
+
+    # Save route information
+    processed_shipping_routes.append(route)
+
+    break
 
 
-# Replace ZIP code and run PCMiler again (different ZIP code but same city, state. E.g. 79732 instead of 79733)
-
-# Find rows that still have invalid mileages and call Google Maps API for mileage
-
-
-
-
-# # Recreate key for source entries to match key in destination table and add to source entry tuples
-# source_entries_with_key = {}
-# for item in source_entries:
-#     org_city = item[0]
-#     org_state = item[1]
-#     org_zip = item[2]
-#     dest_city = item[4]
-#     dest_state = item[5]
-#     dest_zip = item[6]
-#     key = f'{org_city}_{org_state}_{org_zip}_{dest_city}_{dest_state}_{dest_zip}'
-#     source_entries_with_key[key] = item
-#
-# # Only perform API call for source entries that are not present in destination table
-# request_from_api_list = []
-# for key, value in source_entries_with_key.items():
-#     if key not in destination_entries.keys():
-#         request_from_api_list.append(value)
-# print(len(request_from_api_list))
-#
-# # Run API call
-# pcMiler.perform_pc_miler_api_request(request_from_api=request_from_api_list)
-#
-# # self.dataOutputSQLSuccess()
-#
-# # Write API results back to database
+######################################################################
+# LOAD
+######################################################################
+# # Write mileages back to destination database
 # pcMiler.set_destinations()
-# if len(pcMiler.error_list) > 0:
-#     pcMiler.mileageError()
+
