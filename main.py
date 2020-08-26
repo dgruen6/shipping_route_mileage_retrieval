@@ -67,9 +67,9 @@ for index, row in tqdm(shipping_routes_df.iterrows(), total=shipping_routes_df.s
     route = Route(origin=Address(row['Origin City'], row['Origin State'], row['Origin Zip'], row['Origin_Country']),
                   destination=Address(row['Dest City'], row['Dest State'], row['Dest Zip'], row['Destination_Country']),
                   mileage_type=pcMiler.mileage_type)
-    route = Route(origin=Address('NEW BEDFORD', 'MA', '2740', 'USA'),
-                  destination=Address('CLEVELAND', 'TN', '37311', 'USA'),
-                  mileage_type=pcMiler.mileage_type)
+    # route = Route(origin=Address('NEW BEDFORD', 'MA', '2740', 'USA'),
+    #               destination=Address('CLEVELAND', 'TN', '37311', 'USA'),
+    #               mileage_type=pcMiler.mileage_type)
     logging.info(f"Origin: {route.origin}, Destination: {route.destination}")
 
     # Check if route exists in mileages_df (destination database) and mileage is valid
