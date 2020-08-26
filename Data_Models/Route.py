@@ -6,19 +6,29 @@ from Data_Models.Address import Address
 
 
 class Route:
-    def __init__(self, origin: Address, destination: Address):
+    def __init__(self, origin: Address, destination: Address, mileage_type: str):
         self.origin: Address = origin
         self.destination: Address = destination
         self.mileage: Optional[float] = None
+        self.mileage_type: str = mileage_type
         self.mileage_from_pcmiler_db: bool = False
         self.mileage_from_pcmiler_api: bool = False
+        self.zip_code_alternation_loops: int = 0
 
     def __repr__(self):
-        return self.origin, self.destination
+        return f"{self.origin}, {self.destination}"
 
     @property
-    def has_valid_mileage(self):
+    def has_valid_mileage(self) -> bool:
         return self.mileage and self.mileage > 1.0
+
+    @property
+    def mileage_from_zip_code_alternation(self) -> bool:
+        return self.zip_code_alternation_loops > 0
+
+    @property
+    def has_valid_mileage_from_zip_code_alternation(self) -> bool:
+        return self.has_valid_mileage and self.mileage_from_zip_code_alternation
 
     def get_alternative_zip_code(self, for_: str, zip_code_df: pd.DataFrame) -> Optional[List[str]]:
         """
@@ -83,8 +93,5 @@ class Route:
                              'Destination_Country == @self.destination.country.upper()')
 
         if not result_df.empty:
+            self.mileage_from_pcmiler_db = True
             return float(result_df.iloc[0].Mileage)
-
-    def get_mileage_from_google(self) -> float:
-        # TODO: Implement this
-        pass

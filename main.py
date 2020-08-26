@@ -1,13 +1,14 @@
-import logging
-from pathlib import Path
 import configparser
-import pandas as pd
+import logging
+from datetime import datetime
+from pathlib import Path
 
-from Data_Models.Address import Address
+import pandas as pd
+from tqdm import tqdm
+
 from Data_Connectors.DatabaseConnector import DatabaseConnector
 from Data_Connectors.PCMilerApiConnector import PCMilerApiConnector
-from itertools import product
-
+from Data_Models.Address import Address
 from Data_Models.Route import Route
 from Data_Models.Statistics import Statistics
 
@@ -58,70 +59,39 @@ zip_codes_df = pd.read_csv("zipcode-database.csv", usecols=['Zipcode', 'City', '
 pcMiler = PCMilerApiConnector()
 
 # Get mileages for shipping_routes_df (source database)
+logging.info("Retrieving mileage for routes...")
 processed_shipping_routes = []
-count = 0
-for index, row in shipping_routes_df.iterrows():
+
+for index, row in tqdm(shipping_routes_df.iterrows(), total=shipping_routes_df.shape[0]):
     # Create route object from Route class
     route = Route(origin=Address(row['Origin City'], row['Origin State'], row['Origin Zip'], row['Origin_Country']),
-                  destination=Address(row['Dest City'], row['Dest State'], row['Dest Zip'], row['Destination_Country']))
-    # route = Route(origin=Address('NEW BEDFORD', 'MA', '2740', 'USA'),
-    #               destination=Address('CLEVELAND', 'TN', '37311', 'USA'))
-    # TODO: print route for bug fixing
-    print(route)
+                  destination=Address(row['Dest City'], row['Dest State'], row['Dest Zip'], row['Destination_Country']),
+                  mileage_type=pcMiler.mileage_type)
+    route = Route(origin=Address('NEW BEDFORD', 'MA', '2740', 'USA'),
+                  destination=Address('CLEVELAND', 'TN', '37311', 'USA'),
+                  mileage_type=pcMiler.mileage_type)
+    logging.info(f"Origin: {route.origin}, Destination: {route.destination}")
 
     # Check if route exists in mileages_df (destination database) and mileage is valid
     route.mileage = route.find_mileage_in(df=mileages_df)
-    if route.mileage:
-        route.mileage_from_pcmiler_db = True
 
     # If no mileage found, run PCMiler API call
     if not route.mileage:
         route.mileage = pcMiler.get_mileage(*route.get_pcmiler_input())
         route.mileage_from_pcmiler_api = True
 
-    # If mileage not valid, try to alternate the ZIP codes
+    # If mileage not valid, try to alternate the origin ZIP code
     if not route.has_valid_mileage:
-        new_org_zips = route.get_alternative_zip_code(for_='origin', zip_code_df=zip_codes_df)
-        new_dest_zips = route.get_alternative_zip_code(for_='destination', zip_code_df=zip_codes_df)
+        pcMiler.get_mileage_with_alternative_zip_code(alternate='origin', route=route, zip_codes_df=zip_codes_df)
 
-        # Try API call with new origin ZIPs first (if possible)
-        if new_org_zips:
-            pcmiler_input = route.get_pcmiler_input()
-            for new_org_zip in new_org_zips:
-                pcmiler_input[2] = new_org_zip
-                route.mileage = pcMiler.get_mileage(*pcmiler_input)
-                if route.has_valid_mileage:
-                    break
+    # If no improvement, try alternating the destination ZIP code
+    if not route.has_valid_mileage:
+        pcMiler.get_mileage_with_alternative_zip_code(alternate='destination', route=route, zip_codes_df=zip_codes_df)
 
-        # If no improvement, try with the new destination ZIPs (if possible)
-        if not route.has_valid_mileage and new_dest_zips:
-            pcmiler_input = route.get_pcmiler_input()
-            for new_dest_zip in new_dest_zips:
-                pcmiler_input[6] = new_dest_zip
-                route.mileage = pcMiler.get_mileage(*pcmiler_input)
-                if route.has_valid_mileage:
-                    break
-
-        # If still no improvement, try with both new origin and destination ZIPs (if possible)
-        if not route.has_valid_mileage and new_org_zips and new_dest_zips:
-            pcmiler_input = route.get_pcmiler_input()
-            for new_org_zip, new_dest_zip in product(new_org_zips, new_dest_zips):
-                pcmiler_input[2] = new_org_zip
-                pcmiler_input[6] = new_dest_zip
-                route.mileage = pcMiler.get_mileage(*pcmiler_input)
-                if route.has_valid_mileage:
-                    break
-
-    # If alternating the ZIP code did not help, use GoogleMaps API to determine mileage
-    # if not route.has_valid_mileage:
-    #     route.mileage = route.get_mileage_from_google()
+    # TODO: include GoogleMaps API call
 
     # Save route information
     processed_shipping_routes.append(route)
-
-    count += 1
-    if count > 100:
-        break
 
 
 ######################################################################
@@ -129,6 +99,7 @@ for index, row in shipping_routes_df.iterrows():
 ######################################################################
 # Get stats on source database data (processed_shipping_routes_df)
 statistics = Statistics(records=processed_shipping_routes)
+statistics.overview.to_csv("processed_routes_statistics.csv")
 
 # Write mileages back to destination database
 destination_database = DatabaseConnector(server=config['destination_database_credentials']['server'],
@@ -137,7 +108,11 @@ destination_database = DatabaseConnector(server=config['destination_database_cre
                                          password=config['destination_database_credentials']['password'])
 
 destination_database.connect()
-destination_database_insert_query = (Path.cwd() / "SQL_Queries" / "destination_database_sql_commit_mileages.txt")\
-    .read_text()
-destination_database.commit(sql_statement=destination_database_insert_query, insert_data=processed_shipping_routes)
+insert_query = (Path.cwd() / "SQL_Queries" / "destination_database_sql_commit_mileages.txt").read_text()
+insert_data = [[route.origin.city, route.origin.state, route.origin.zip_code,
+                route.origin.zip_code_modified, route.origin.country,
+                route.destination.city, route.destination.state, route.destination.zip_code,
+                route.destination.zip_code_modified, route.destination.country,
+                route.mileage_type, route.mileage, datetime.now()] for route in processed_shipping_routes]
+destination_database.commit(sql_statement=insert_query, insert_data=insert_data)
 destination_database.close()

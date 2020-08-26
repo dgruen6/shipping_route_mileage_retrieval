@@ -1,0 +1,9 @@
+,Abs,%
+Records in source table,1,100.0
+Records matched with PCMiler database,0,0.0
+Records called PCMiler API,0,0.0
+Records called PCMiler API and valid mileage,0,0.0
+Records applied ZIP code alternation and valid,0,0.0
+Average ZIP code alternation loop length,0,N/A
+Valid mileages,1,100.0
+Invalid mileages,0,0.0

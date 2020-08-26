@@ -4,20 +4,19 @@ from typing import Optional, List
 import pyodbc
 
 import pandas as pd
-from ..Data_Models.Route import Route
 
 
 class DatabaseConnector:
     def __init__(self, server: str, database: str, username: str, password: str):
         self.conn: Optional[pyodbc] = None
         self.cursor: Optional[pyodbc] = None
-        self.server: str = server
-        self.database: str = database
-        self.username: str = username
-        self.password: str = password
+        self._server: str = server
+        self._database: str = database
+        self._username: str = username
+        self._password: str = password
 
     def __repr__(self):
-        return f">{self.server}< database"
+        return f">{self._server}< database"
 
     def connect(self) -> bool:
         """
@@ -31,18 +30,17 @@ class DatabaseConnector:
         else:  # Windows
             driver = 'SQL Server'
         conn_str = f"DRIVER={{{driver}}};" \
-                   f"SERVER={self.server};" \
-                   f"DATABASE={self.database};" \
-                   f"UID={self.username};" \
-                   f"PWD={self.password}"
+                   f"SERVER={self._server};" \
+                   f"DATABASE={self._database};" \
+                   f"UID={self._username};" \
+                   f"PWD={self._password}"
         try:
             self.conn = pyodbc.connect(conn_str)
         except:
-            logging.info(f"Could not connect to >{self.server}< SQL server")
+            logging.info(f"Could not connect to >{self._server}< SQL server")
             raise ConnectionError
         else:
             self.cursor = self.conn.cursor()
-            logging.info(f"Successfully connected to >{self.server}< SQL server")
             return True
 
     def fetch(self, sql_statement: str) -> Optional[pd.DataFrame]:
@@ -53,23 +51,20 @@ class DatabaseConnector:
         :return: True if query was successful, False otherwise
         """
         result_df = pd.read_sql(sql_statement, self.conn)
+        logging.info(f"Successfully fetched data from >{self._server}< SQL server")
         return result_df
 
-    def commit(self, sql_statement: str, insert_data: List[Route]):
+    def commit(self, sql_statement: str, insert_data: List):
         """
-        Insert into database
+        Insert routes into database
 
         :param sql_statement: Insert SQL query
         :param insert_data: Data to be inserted into database
         :return:
         """
-        # TODO: Finish this
         for row in insert_data:
             try:
-                self.cursor.fetch(sql_statement, self.output_list[i][0], self.output_list[i][1], self.output_list[i][2],
-                                  self.output_list[i][3], self.output_list[i][4], self.output_list[i][5],
-                                  self.output_list[i][6], self.output_list[i][7], self.output_list[i][8],
-                                  float(self.output_list[i][9]), datetime.datetime.now())
+                self.cursor.execute(sql_statement, *row)
                 self.conn.commit()
             except:
                 print("Error during database insertion")
