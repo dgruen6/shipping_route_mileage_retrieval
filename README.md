@@ -1,2 +1,4 @@
-# shipping_route_mileage_retrieval
-Pull shipping route information and retrieve route length / mileage from either existing database or API call
+# How to use this script
+The file that needs to be executed with a Python compiler/interpreter is >main.py<. Please use Python 3.8.
+Following steps will guide you through the process of running the script:
+1. 
