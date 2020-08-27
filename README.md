@@ -1,5 +1,5 @@
 # What this script does
-This script is retrieving shipping mileages / truck mileages for given origin-destination-pairs of a shipping route. First, it tries to find the given route in a historical routes destination database table and retrieve mileage from the destination database table. If route could not be found in destination database table, the PC Miler API will be called to retrieve mileage. If mileage is invalid (mileage < 1.0), the ZIP codes will be alternated in order to fix the invalid mileage. ZIP code alternation in this context means, that for the same (city, state, country)-pair an other valid ZIP code is utilised for the API call. If mileage is still invalid after ZIP code alternation, the logic ends. However, it is possible to include a GoogleMaps API call and get a rough mileage estimate.   
+This script is retrieving shipping mileages / truck mileages for given origin-destination-pairs of a shipping route. First, it tries to find the given route in a historical routes destination database table and retrieve mileage from the destination database table. If route could not be found in destination database table, the PC Miler API will be called to retrieve mileage. If mileage is invalid (mileage < 1.0), the ZIP codes will be alternated in order to fix the invalid mileage. ZIP code alternation in this context means, that for the same (city, state, country)-pair an other valid ZIP code is utilised for the API call. If mileage is still invalid after ZIP code alternation, the logic ends.    
 
 # Requirements
 1. VPN
@@ -18,3 +18,4 @@ Following steps will guide you through the process of running the script:
 
 # Enhancements
 1. SMTP Email notification of success, failure with 'processed_routes_statistics.csv' attached on sucess. 
+2. GoogleMaps API call and get a rough mileage estimate and update Mileage Type in destination database table to GoogleAPI 
