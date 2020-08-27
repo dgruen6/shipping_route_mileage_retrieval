@@ -8,5 +8,5 @@ Following steps will guide you through the process of running the script:
 2. The folder 'API_Templates' contains the API template for a PC Miler API call. To call the PC Miler API you need to have a valid PC Miler license.  
 3. The credentials for the databases are located in a file called 'config.ini'. You need to recreate that file in order to provide database credentials. The 'config.ini' file is not on Github as it contains sensitive data.  
 4. Run the file 'main.py' with Python 3.8  
-5. Mileage results will be written back to the database together with alternative ZIP codes (if applicable)
+5. Mileage results will be written back to the destination database together with alternative ZIP codes (if applicable)
 6. A 'processed_routes_statistics.csv' will be created to give an overview of how many routes have been processed, how many valid mileages, etc.
